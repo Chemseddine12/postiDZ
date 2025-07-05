@@ -1,0 +1,96 @@
+
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تسجيل دخول موزع البريد</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600&display=swap');
+    body {
+      font-family: 'Cairo', sans-serif;
+      direction: rtl;
+      background: linear-gradient(to right, #a8edea, #fed6e3);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .login-box {
+      background: #ffffff;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      border: 1px solid #56cfe1;
+    }
+    h2 {
+      margin-bottom: 25px;
+      color: #168aad;
+      font-size: 24px;
+    }
+    input {
+      width: 100%;
+      padding: 14px;
+      margin: 12px 0;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+      transition: all 0.3s ease;
+    }
+    input:focus {
+      border-color: #56cfe1;
+      box-shadow: 0 0 5px rgba(86, 207, 225, 0.4);
+    }
+    button {
+      background-color: #56cfe1;
+      color: white;
+      padding: 14px;
+      font-weight: bold;
+      border-radius: 10px;
+      width: 100%;
+      border: none;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background-color: #168aad;
+    }
+    .error {
+      color: red;
+      margin-top: 15px;
+      font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <h2>🔐 تسجيل دخول موزع البريد</h2>
+    <input type="email" id="email" placeholder="📧 البريد الإلكتروني">
+    <input type="password" id="password" placeholder="🔑 كلمة السر">
+    <button onclick="login()">دخول</button>
+    <div class="error" id="error"></div>
+  </div>
+
+  <script>
+    const validEmail = "chames299@gmail.com";
+    const validPassword = "Rch&07021991";
+
+    function login() {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const errorBox = document.getElementById("error");
+
+      if (email === validEmail && password === validPassword) {
+        errorBox.textContent = "";
+        window.location.href = "postiDZ.html?agent=" + encodeURIComponent(email);
+      } else {
+        errorBox.textContent = "❌ البريد أو كلمة السر غير صحيحة";
+      }
+    }
+  </script>
+</body>
+</html>
