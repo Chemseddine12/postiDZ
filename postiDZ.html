@@ -1,1 +1,244 @@
-<!-- محتوى postiDZ.html يوضع هنا -->
+
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>PostiDZ - الزبائن</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600&display=swap');
+    body {
+      font-family: 'Cairo', sans-serif;
+      direction: rtl;
+      background: linear-gradient(to bottom, #a8edea, #fed6e3);
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: #ffffffee;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      border: 2px solid #56cfe1;
+    }
+    h2 {
+      text-align: center;
+      color: #168aad;
+    }
+    input, select, button {
+      padding: 12px;
+      font-size: 16px;
+      margin: 10px 0;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #ff9770;
+      color: white;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #ff6b6b;
+    }
+    #searchBox {
+      background-image: url('https://cdn-icons-png.flaticon.com/512/622/622669.png');
+      background-size: 20px 20px;
+      background-repeat: no-repeat;
+      background-position: 10px center;
+      padding-right: 40px;
+    }
+    .result-card {
+      background: #e3fafc;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 10px;
+      border: 1px solid #ade8f4;
+    }
+  </style>
+</head>
+<body>
+
+<!-- شريط اسم الموزع وزر تسجيل الخروج -->
+<div style="display: flex; justify-content: space-between; align-items: center; background: #d9f9ff; padding: 10px 20px; border-radius: 10px; margin-bottom: 20px;">
+  <div id="agentName" style="color: #168aad; font-weight: bold;">👤 موزع: ...</div>
+  <button onclick="logout()" style="background-color: #ff6b6b; color: white; border: none; border-radius: 8px; padding: 10px; cursor: pointer;">🚪 تسجيل الخروج</button>
+</div>
+
+<div class="container">
+  <h2>📦 تسجيل وتسليم الزبون</h2>
+
+  <input type="text" id="name" placeholder="الاسم">
+  <input type="text" id="surname" placeholder="اللقب">
+  <input type="text" id="address" placeholder="العنوان الكامل">
+  <input type="text" id="phone" placeholder="رقم الهاتف (يبدأ بـ 05 أو 06 أو 07)">
+  <input type="text" id="tracking" placeholder="رقم التتبع" oninput="processTracking()">
+
+  <select id="messageType">
+    <option value="">-- نوع الطرد --</option>
+    <option value="صك بريدي">💰 صك بريدي</option>
+    <option value="رسالة">📮 رسالة</option>
+    <option value="رسالة من الخارج">🌍 رسالة من الخارج</option>
+    <option value="تلغرام">📨 تلغرام</option>
+  </select>
+
+  <label for="idImage">📷 صورة بطاقة الهوية (اختياري):</label>
+  <input type="file" id="idImage" accept="image/*">
+
+  <select id="deliveryStatus">
+    <option value="غير مسلم">-- حالة التسليم --</option>
+    <option value="تم الاستلام">✅ تم الاستلام</option>
+    <option value="تبليغ إشعار بالوصول">📩 إشعار بالوصول</option>
+    <option value="رفض">❌ مرفوض</option>
+    <option value="DECEDE">☠️ متوفي</option>
+    <option value="NHPAI">🏠 عنوان غير مذكور</option>
+    <option value="PSA">📦 انتقل من العنوان</option>
+    <option value="A IMOMPLETE">📄 عنوان ناقص</option>
+    <option value="BF">🚪 باب مغلق</option>
+    <option value="RF">🚧 طريق مغلق</option>
+    <option value="PI">❓ شخص غير معروف</option>
+  </select>
+
+  <button onclick="saveClient()">💾 حفظ الزبون</button>
+  <button onclick="downloadExcel()">⬇️ تحميل كل الزبائن Excel</button>
+
+  <hr>
+
+  <input type="text" id="searchBox" placeholder="🔍 بحث بالاسم أو اللقب أو الهاتف أو رقم التتبع">
+  <button onclick="searchClients()">🔍 تنفيذ البحث</button>
+  <button onclick="downloadSearchExcel()">📤 تحميل نتائج البحث Excel</button>
+
+  <div id="results"></div>
+</div>
+
+<script>
+  const clients = [];
+  let searchResults = [];
+
+  window.onload = function () {
+    const saved = localStorage.getItem("posti_clients");
+    if (saved) clients.push(...JSON.parse(saved));
+    const agent = new URLSearchParams(window.location.search).get("agent");
+    if (agent) {
+      document.getElementById("agentName").textContent = "👤 موزع: " + agent;
+    }
+  };
+
+  function logout() {
+    window.location.href = "login.html";
+  }
+
+  function saveToLocal() {
+    localStorage.setItem("posti_clients", JSON.stringify(clients));
+  }
+
+  function processTracking() {
+    const input = document.getElementById("tracking");
+    const value = input.value.toUpperCase();
+    const select = document.getElementById("messageType");
+
+    if (value.startsWith("CH") && value.length === 12)
+      input.value = "00779999900" + value.slice(2), select.value = "صك بريدي";
+    else if (value.startsWith("LR")) select.value = "رسالة";
+    else if (value.startsWith("LE")) select.value = "رسالة من الخارج";
+    else if (value.startsWith("TG")) select.value = "تلغرام";
+  }
+
+  function saveClient() {
+    const name = document.getElementById("name").value.trim();
+    const surname = document.getElementById("surname").value.trim();
+    const address = document.getElementById("address").value.trim();
+    const phone = document.getElementById("phone").value.trim();
+    const tracking = document.getElementById("tracking").value.trim();
+    const type = document.getElementById("messageType").value;
+    const status = document.getElementById("deliveryStatus").value;
+    const image = document.getElementById("idImage").files[0];
+
+    if (!phone.match(/^0[567]/)) {
+      alert("📵 رقم الهاتف غير صحيح. يجب أن يبدأ بـ 05 أو 06 أو 07");
+      return;
+    }
+
+    const now = new Date();
+    const date = now.toLocaleDateString('ar-DZ');
+    const time = now.toLocaleTimeString('ar-DZ');
+
+    const entry = {
+      الاسم: name, اللقب: surname, العنوان: address, الهاتف: phone,
+      التتبع: tracking, النوع: type, الحالة: status,
+      التاريخ: date, الوقت: time, الهوية: ""
+    };
+
+    if (image) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        entry.الهوية = reader.result;
+        clients.push(entry);
+        saveToLocal();
+        alert("✅ تم حفظ الزبون");
+      };
+      reader.readAsDataURL(image);
+    } else {
+      clients.push(entry);
+      saveToLocal();
+      alert("✅ تم حفظ الزبون بدون صورة الهوية");
+    }
+
+    document.querySelectorAll("input, select").forEach(e => e.value = "");
+  }
+
+  function searchClients() {
+    const q = document.getElementById("searchBox").value.trim();
+    searchResults = clients.filter(c =>
+      c.الاسم.includes(q) || c.اللقب.includes(q) ||
+      c.الهاتف.includes(q) || c.التتبع.includes(q)
+    );
+    const resultsDiv = document.getElementById("results");
+    if (!searchResults.length) {
+      resultsDiv.innerHTML = "<b>❌ لا توجد نتائج.</b>";
+      return;
+    }
+    resultsDiv.innerHTML = searchResults.map(c => `
+      <div class="result-card">
+        <b>الاسم:</b> ${c.الاسم}<br>
+        <b>اللقب:</b> ${c.اللقب}<br>
+        <b>الهاتف:</b> ${c.الهاتف}<br>
+        <b>التتبع:</b> ${c.التتبع}<br>
+        <b>النوع:</b> ${c.النوع}<br>
+        <b>الحالة:</b> ${c.الحالة}<br>
+        <b>التاريخ:</b> ${c.التاريخ}<br>
+        <b>الوقت:</b> ${c.الوقت}<br>
+        ${c.الهوية ? `<img src="${c.الهوية}" width="150">` : ""}
+      </div>`).join("");
+  }
+
+  function downloadExcel() {
+    if (!clients.length) return alert("لا يوجد بيانات!");
+    exportToExcel(clients, "كل_الزبائن.xlsx");
+  }
+
+  function downloadSearchExcel() {
+    if (!searchResults.length) return alert("لا توجد نتائج!");
+    exportToExcel(searchResults, "نتائج_البحث.xlsx");
+  }
+
+  function exportToExcel(dataArray, filename) {
+    const headers = ["الاسم", "اللقب", "العنوان", "الهاتف", "رقم التتبع", "النوع", "الحالة", "التاريخ", "الوقت", "رابط الهوية"];
+    const rows = dataArray.map(c => [
+      c.الاسم, c.اللقب, c.العنوان, c.الهاتف,
+      c.التتبع, c.النوع, c.الحالة, c.التاريخ, c.الوقت, c.الهوية
+    ]);
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "PostiDZ");
+    XLSX.writeFile(wb, filename);
+  }
+</script>
+
+</body>
+</html>
